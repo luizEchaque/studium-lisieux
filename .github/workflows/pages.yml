@@ -1,0 +1,46 @@
+name: Publicar Studium Lisieux no GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: studium-front/package-lock.json
+      - name: Configurar Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Instalar dependências
+        run: npm ci
+        working-directory: studium-front
+      - name: Compilar front-end
+        run: npm run build -- --base "$PAGES_BASE_PATH/"
+        working-directory: studium-front
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: studium-front/dist
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
